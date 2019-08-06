@@ -1,0 +1,8 @@
+services:
+  itcommunity_update.breadcrumb:
+    # The namespace + classname from your BreadcrumbBuilderInterface class
+    class: Drupal\itcommunity_update\Breadcrumb\BreadcrumbBuilder
+   
+    # Priority determines the order in which Breadcrumb services run.
+    tags:
+      - { name: breadcrumb_builder, priority: 100 }

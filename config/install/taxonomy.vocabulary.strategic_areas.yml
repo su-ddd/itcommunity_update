@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'Strategic Areas'
+vid: strategic_areas
+description: 'Campus IT Plan Strategic Areas'
+weight: 0

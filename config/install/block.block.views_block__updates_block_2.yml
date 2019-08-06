@@ -1,0 +1,36 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.updates
+  module:
+    - block_class
+    - ctools
+    - views
+  theme:
+    - stanford_it
+third_party_settings:
+  block_class:
+    classes: bg-cloud
+id: views_block__updates_block_2
+theme: stanford_it
+region: fullwidth_bottom
+weight: 0
+provider: null
+plugin: 'views_block:updates-block_2'
+settings:
+  id: 'views_block:updates-block_2'
+  label: ''
+  provider: views
+  label_display: '0'
+  views_label: ''
+  items_per_page: none
+  context_mapping: {  }
+visibility:
+  'entity_bundle:node':
+    id: 'entity_bundle:node'
+    bundles:
+      update: update
+    negate: false
+    context_mapping:
+      node: '@node.node_route_context:node'

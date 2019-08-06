@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: update
+label: Update
+type: 'canonical_entities:node'
+pattern: 'take5/[node:title]'
+selection_criteria:
+  d4242aa3-7b4f-433e-8f15-6f2bdfe7de85:
+    id: node_type
+    bundles:
+      update: update
+    negate: false
+    context_mapping:
+      node: node
+    uuid: d4242aa3-7b4f-433e-8f15-6f2bdfe7de85
+selection_logic: and
+weight: -5
+relationships: {  }

@@ -1,0 +1,32 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.updates
+  module:
+    - node
+    - views
+  theme:
+    - stanford_it
+id: views_block__updates_block_4
+theme: stanford_it
+region: sidebar_second
+weight: -25
+provider: null
+plugin: 'views_block:updates-block_4'
+settings:
+  id: 'views_block:updates-block_4'
+  label: ''
+  provider: views
+  label_display: visible
+  views_label: ''
+  items_per_page: none
+  context_mapping: {  }
+visibility:
+  node_type:
+    id: node_type
+    bundles:
+      update: update
+    negate: false
+    context_mapping:
+      node: '@node.node_route_context:node'

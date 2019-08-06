@@ -1,0 +1,47 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.update.body
+    - field.field.node.update.field_update_keywords
+    - field.field.node.update.field_update_slack_url
+    - field.field.node.update.field_update_strategic_area
+    - field.field.node.update.field_update_url
+    - node.type.update
+  module:
+    - link
+    - text
+    - user
+id: node.update.default
+targetEntityType: node
+bundle: update
+mode: default
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 1
+    settings: {  }
+    third_party_settings: {  }
+    region: content
+  field_update_url:
+    weight: 2
+    label: above
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: ''
+    third_party_settings: {  }
+    type: link
+    region: content
+  links:
+    weight: 0
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  field_update_keywords: true
+  field_update_slack_url: true
+  field_update_strategic_area: true

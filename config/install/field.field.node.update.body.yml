@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.body
+    - node.type.update
+  module:
+    - text
+id: node.update.body
+field_name: body
+entity_type: node
+bundle: update
+label: Update
+description: 'Share your update in a few words and up to 300 words. These are designed to be brief and frequent updates to the IT Community.'
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  display_summary: false
+field_type: text_with_summary

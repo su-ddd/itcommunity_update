@@ -1,0 +1,21 @@
+name: 'IT Community Updates (Take 5)'
+description: 'Provide Functionality for the IT Community Updates'
+type: module
+core: 8.x
+package: 'IT Community'
+version: 8.x-1.0-dev
+dependencies:
+  - better_exposed_filters
+  - block
+  - block_class
+  - ctools
+  - field
+  - link
+  - menu_ui
+  - node
+  - pathauto
+  - system
+  - taxonomy
+  - text
+  - user
+  - views

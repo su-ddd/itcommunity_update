@@ -1,0 +1,199 @@
+<?php
+
+function itcommunity_update_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id){
+  if($form_id == 'node_update_form'){
+    $form['#title'] = 'Publish a Take 5 Update';
+    $form['actions']['submit']['#value'] = t('Publish Now');
+    unset($form['meta']);
+  }
+}
+
+// When an update is published for the first time, push something like:
+// Author published a Take 5 update: Title
+// Slack responds with the ID / URL for the post
+// Then, post to Slack the content as a reply
+// Questions:
+// How do you know this is the first time? (need to record that the node was sent to Slack)
+// How do we get the post ID
+// How do we post a reply
+// Do we need to modify the text so that it's posted correctly to Slack? (simpler the better)
+
+use Drupal\node\NodeInterface;
+
+/*
+ * Use the presave hook, called right before the node is ready to be saved.
+ * It's called when a new node is created, and when an existing one is udpated.
+ *
+ */
+
+function itcommunity_update_node_presave(NodeInterface $node) {
+  if (($node->getType() == 'update') && ($node->isPublished())) {
+    $current_permalink = $node->get('field_update_slack_url')->getValue();
+    if (empty($current_permalink)) {
+      // send a message to Slack, and get the permalink to the thread
+      $permalink = itcommunity_update_send_to_slack($node);
+      if (!empty($permalink)) {
+        $node->set('field_update_slack_url', [ 'uri' => $permalink]);
+      }
+    }
+  }
+}
+
+/*
+ * Send an IT Community update to Slack for a node, and return a permalink
+ * to the thread.
+ *
+ */
+
+function itcommunity_update_send_to_slack($node) {
+
+  $config = \Drupal::config('itcommunity_update.settings');
+  $channel = $config->get('channel');
+  $token = $config->get('token');
+
+  $message = $node->getRevisionUser()->getDisplayName() . ': ' . $node->getTitle();
+
+  $ts = itcommunity_update_push_to_slack($token, $message, $channel);
+
+  // post reply
+  $message = itcommunity_update_markdownify($node->body->value);
+  $thread_ts = itcommunity_update_push_to_slack($token, $message, $channel, $ts);
+  
+  // get the permalink
+  $permalink = itcommunity_update_get_slack_permalink($token, $channel, $thread_ts);
+
+  return $permalink;
+}
+
+/*
+ * Convert HTML to Slack's own version of Markdown
+ */
+function itcommunity_update_markdownify($message) {
+  $message = strip_tags($message, '<strong><em><li><a>');
+  $message = str_replace(array('<strong>', '</strong>'), array('*', '*'), $message);
+  $message = str_replace(array('<em>', '</em>'), array('_', '_'), $message);
+  $message = str_replace(array('<li>', '</li>'), array('&bull; ', ''), $message);
+  preg_match_all('/<a href=\"(.*?)\">(.*?)<\/a>/i', $message, $res);
+  for($i = 0; $i < count($res[0]); $i++) {
+    $message = str_replace($res[0][$i], '<'.$res[1][$i].'|'.$res[2][$i].'>', $message);
+  }
+  $message = html_entity_decode($message);
+
+  return $message;
+}
+
+/*
+ * Get a Slack permalink given a token, channel and timestamp.
+ */
+
+function itcommunity_update_push_to_slack($token, $message, $channel, $thread_ts = '') {
+  $ts = '';
+  $url = 'https://slack.com/api/chat.postMessage';
+
+  $headers = array(
+    'Content-Type' => 'application/json',
+    'Authorization' => 'Bearer ' . $token,
+  );
+
+  if (empty($thread_ts)) {
+    $payload = [ 'text' => $message, 'channel' => $channel, ];
+  } else {
+    $payload = [ 'text' => $message, 'channel' => $channel, 'thread_ts' => $thread_ts ];
+  }
+
+  $json = json_encode($payload);
+  $client = \Drupal::httpClient();
+
+  try {
+    $request = $client->post($url, ['headers' => $headers, 'body' => $json]);
+    $response = $request->getBody()->getContents();
+    $ts = json_decode($response)->ts;
+  }
+  catch (RequestException $e) {
+    watchdog_exception('itcommunity_update', $e);
+  }
+  return $ts;
+}
+
+/*
+ * Get a Slack permalink given a token, channel and timestamp.
+ */
+
+function itcommunity_update_get_slack_permalink($token, $channel, $ts) {
+  $permalink = '';
+
+  $client = \Drupal::httpClient();
+  $headers = array(
+    'Authorization' => 'Bearer ' . $token,
+  );
+
+  $parameters = array(
+    'channel' => $channel,
+    'message_ts' => $ts
+  );
+
+  try {
+    $request = $client->post('https://slack.com/api/chat.getPermalink', ['headers' => $headers, 'form_params' => $parameters]);
+    $response = $request->getBody()->getContents();
+    $permalink = json_decode($response)->permalink;
+  }
+  catch (RequestException $e) {
+    watchdog_exception('itcommunity_update', $e);
+  }
+ 
+  return $permalink;
+}
+
+use Drupal\Core\Form\FormStateInterface;
+ 
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Alters the artist options on artwork pages.
+ */
+function itcommunity_update_form_views_exposed_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+
+  if ($form['#id'] != 'views-exposed-form-updates-block-1') {
+    return FALSE;
+  }
+
+  // Query nodes
+  $storage = Drupal::getContainer()->get('entity_type.manager')->getStorage('node');
+  $nids = $storage->getQuery();
+ 
+  // Gather published update nodes and sort by title
+  $nids = $nids->condition('type', 'update')
+     ->condition('status', 1)
+     ->sort('title')
+     ->execute();
+ 
+  // If there are no nodes, move on
+  if (!$nids) {
+   return FALSE;
+  }
+
+  // Start building out the options for our select list
+  $options = [];
+  $nodes = $storage->loadMultiple($nids);
+ 
+  // Push titles into select list
+  foreach ($nodes as $node) {
+    $author = $node->getRevisionUser();
+    $author_id = $author->id();
+    $author_name = $author->getDisplayName();
+    $options[$author_id] = $author_name;
+  }
+ 
+  // Start building out our new form element
+  $form['uid']['#type'] = 'select';
+  $form['uid']['#multiple'] = FALSE;
+ 
+  // Specify the empty option for our select list
+  $form['uid']['#empty_option'] = t('Any');
+
+  natcasesort($options);
+
+  // Add the $options from above to our select list
+  $form['uid']['#options'] = $options;
+  unset($form['uid']['#size']);
+}

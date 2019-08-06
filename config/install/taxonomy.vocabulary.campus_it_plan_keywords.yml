@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'Campus IT Plan Keywords'
+vid: campus_it_plan_keywords
+description: 'Campus IT Plan Keywords'
+weight: 0
